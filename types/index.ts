@@ -1,3 +1,5 @@
+import type { Content } from '@google/genai';
+
 export type PromptMode = 'raw' | 'improved';
 export type ResolutionOption = 'default' | '2K' | '4K';
 export type EditMode = 'edit' | 'new_generation';
@@ -20,7 +22,7 @@ export interface GeminiMetadata {
     };
     thoughtSignature?: string;
   }>;
-  conversationContents?: unknown[];
+  conversationContents?: Content[];
   model: string;
 }
 

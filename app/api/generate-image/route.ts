@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Content } from '@google/genai';
 import { generateGeminiImage } from '@/services/gemini-service';
 import { ResolutionOption } from '@/types';
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       resolution,
       sourceImage,
       previousConversationContents: Array.isArray(body.previousConversationContents)
-        ? body.previousConversationContents
+        ? (body.previousConversationContents as Content[])
         : undefined
     });
 
