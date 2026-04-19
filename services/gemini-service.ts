@@ -69,7 +69,7 @@ export async function generateGeminiImage({
   }
 
   const thoughtSignatureParts = parts
-    .map((part) => part.thoughtSignature || part.inlineData?.thoughtSignature)
+    .map((part) => part.thoughtSignature)
     .filter((item): item is string => Boolean(item));
 
   const metadata: GeminiMetadata = {
@@ -80,8 +80,7 @@ export async function generateGeminiImage({
       inlineData: part.inlineData
         ? {
             mimeType: part.inlineData.mimeType ?? 'image/png',
-            data: part.inlineData.data ?? '',
-            thoughtSignature: part.inlineData.thoughtSignature
+            data: part.inlineData.data ?? ''
           }
         : undefined,
       thoughtSignature: part.thoughtSignature
