@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { improvePrompt } from '@/services/openai-service';
+import { improvePromptWithGemini } from '@/services/gemini-prompt-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 });
     }
 
-    const result = await improvePrompt({ rawPrompt, mode });
+    const result = await improvePromptWithGemini({ rawPrompt, mode });
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json(

@@ -4,9 +4,10 @@ import { useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ActivePreview } from '@/components/active-preview';
 import { ControlPanel } from '@/components/control-panel';
+import { DEFAULT_GEMINI_IMAGE_MODEL } from '@/config/constants';
 import { IterationTimeline } from '@/components/iteration-timeline';
 import { downloadBase64Png, fileToDataUrl, parseDataUrl, validateImageFile } from '@/services/client-utils';
-import { IterationStep, PromptImprovementResult, PromptMode, ResolutionOption } from '@/types';
+import { GeminiImageModelId, IterationStep, PromptImprovementResult, PromptMode, ResolutionOption } from '@/types';
 
 export default function Home() {
   const [rawPrompt, setRawPrompt] = useState('');
@@ -14,6 +15,7 @@ export default function Home() {
   const [isImprovedPromptStale, setIsImprovedPromptStale] = useState(false);
   const [activePromptMode, setActivePromptMode] = useState<PromptMode>('raw');
   const [resolution, setResolution] = useState<ResolutionOption>('default');
+  const [model, setModel] = useState<GeminiImageModelId>(DEFAULT_GEMINI_IMAGE_MODEL);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [sourceImageDataUrl, setSourceImageDataUrl] = useState<string | undefined>();
@@ -46,7 +48,7 @@ export default function Home() {
     }
 
     setLoadingImprove(true);
-    setStatus('Improving prompt with OpenAI...');
+    setStatus('Improving prompt with Gemini...');
 
     try {
       const mode = sourceImageDataUrl || currentImage ? 'edit' : 'new_generation';
@@ -94,6 +96,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: promptToUse,
+          model,
           resolution,
           sourceImage,
           previousConversationContents: activeStep?.geminiMetadata.conversationContents
@@ -184,6 +187,7 @@ export default function Home() {
     setIsImprovedPromptStale(false);
     setActivePromptMode('raw');
     setResolution('default');
+    setModel(DEFAULT_GEMINI_IMAGE_MODEL);
     setSourceImageDataUrl(undefined);
     setCurrentImage(undefined);
     setIterationChain([]);
@@ -214,6 +218,7 @@ export default function Home() {
             promptMode={activePromptMode}
             isStale={isImprovedPromptStale}
             resolution={resolution}
+            model={model}
             hasSourceImage={Boolean(sourceImageDataUrl || currentImage)}
             loadingImprove={loadingImprove}
             loadingGenerate={loadingGenerate}
@@ -222,6 +227,7 @@ export default function Home() {
             onImprovedPromptChange={setImprovedPrompt}
             onPromptModeChange={setActivePromptMode}
             onResolutionChange={setResolution}
+            onModelChange={setModel}
             onImprovePrompt={handleImprovePrompt}
             onGenerate={handleGenerate}
             onReset={handleReset}

@@ -2,13 +2,12 @@
 
 A premium, dark-mode, Vercel-deployable creative web app for iterative AI image generation and editing.
 
-- **Gemini (Nano Banana)** handles image generation/editing only.
-- **OpenAI** handles optional prompt improvement only.
+- **Gemini** handles both optional prompt improvement and image generation/editing.
 
 ## Features
 
 - Start from **text** or **upload an image**
-- Raw prompt workflow with optional OpenAI prompt improvement
+- Raw prompt workflow with optional Gemini prompt improvement
 - Prompt mode switch:
   - `Using: Raw Prompt`
   - `Using: Improved Prompt`
@@ -44,7 +43,7 @@ components/
   iteration-timeline.tsx
 services/
   client-utils.ts
-  openai-service.ts
+  gemini-prompt-service.ts
   gemini-service.ts
 types/
   index.ts
@@ -69,12 +68,11 @@ cp .env.example .env.local
 
 Add values:
 
-- `OPENAI_API_KEY`
 - `GEMINI_API_KEY`
 
 Optional model overrides:
 
-- `OPENAI_PROMPT_IMPROVER_MODEL` (default: `gpt-5-mini`)
+- `GEMINI_PROMPT_IMPROVER_MODEL` (default: `gemini-2.5-flash`)
 - `GEMINI_IMAGE_MODEL` (default: `gemini-2.5-flash-image`)
 
 ## 3) Run locally
@@ -90,16 +88,15 @@ Open: [http://localhost:3000](http://localhost:3000)
 1. Push repo to GitHub/GitLab/Bitbucket.
 2. Import project into Vercel.
 3. Set env vars in Vercel Project Settings:
-   - `OPENAI_API_KEY`
    - `GEMINI_API_KEY`
    - (optional model env vars)
 4. Deploy.
 
-## Prompt Improver Flow (OpenAI)
+## Prompt Improver Flow (Gemini)
 
 - Triggered **only** when user clicks **Improve Prompt**.
 - Endpoint: `POST /api/improve-prompt`
-- Uses the exact system prompt in `config/constants.ts`.
+- Uses the exact rewrite instructions in `config/constants.ts`.
 - Returns strict JSON schema:
 
 ```json
