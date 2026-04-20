@@ -1,5 +1,7 @@
-import { GoogleGenAI, Part } from '@google/genai';
+import { Content, GoogleGenAI, Part } from '@google/genai';
+import { DEFAULT_GEMINI_IMAGE_MODEL } from '@/config/constants';
 import { GeminiMetadata, ResolutionOption } from '@/types';
+import type { GeminiImageModelId } from '@/types';
 
 let geminiClient: GoogleGenAI | null = null;
 
@@ -21,18 +23,20 @@ function buildImageConfig(resolution: ResolutionOption) {
 interface GenerateGeminiImageArgs {
   prompt: string;
   resolution: ResolutionOption;
+  model?: GeminiImageModelId;
   sourceImage?: { mimeType: string; data: string };
-  previousConversationContents?: unknown[];
+  previousConversationContents?: Content[];
 }
 
 export async function generateGeminiImage({
   prompt,
   resolution,
+  model,
   sourceImage,
   previousConversationContents
 }: GenerateGeminiImageArgs): Promise<{ imageBase64: string; metadata: GeminiMetadata; model: string }> {
   const client = getGeminiClient();
-  const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+  const selectedModel = model || process.env.GEMINI_IMAGE_MODEL || DEFAULT_GEMINI_IMAGE_MODEL;
 
   const currentMessageParts: Part[] = [{ text: prompt } as Part];
   if (sourceImage) {
@@ -44,16 +48,16 @@ export async function generateGeminiImage({
     } as Part);
   }
 
-  const contents: unknown[] = [
+  const contents: Content[] = [
     ...(Array.isArray(previousConversationContents) ? previousConversationContents : []),
     {
       role: 'user',
       parts: currentMessageParts
-    }
+    } as Content
   ];
 
   const response = await client.models.generateContent({
-    model,
+    model: selectedModel,
     contents,
     config: {
       responseModalities: ['TEXT', 'IMAGE'],
@@ -69,19 +73,18 @@ export async function generateGeminiImage({
   }
 
   const thoughtSignatureParts = parts
-    .map((part) => part.thoughtSignature || part.inlineData?.thoughtSignature)
+    .map((part) => part.thoughtSignature)
     .filter((item): item is string => Boolean(item));
 
   const metadata: GeminiMetadata = {
-    model,
+    model: selectedModel,
     thoughtSignatureParts,
     responseParts: parts.map((part) => ({
       text: part.text,
       inlineData: part.inlineData
         ? {
             mimeType: part.inlineData.mimeType ?? 'image/png',
-            data: part.inlineData.data ?? '',
-            thoughtSignature: part.inlineData.thoughtSignature
+            data: part.inlineData.data ?? ''
           }
         : undefined,
       thoughtSignature: part.thoughtSignature
@@ -91,13 +94,13 @@ export async function generateGeminiImage({
       {
         role: 'model',
         parts
-      }
+      } as Content
     ]
   };
 
   return {
     imageBase64: imagePart.inlineData.data,
     metadata,
-    model
+    model: selectedModel
   };
 }
