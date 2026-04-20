@@ -18,7 +18,7 @@ export const GEMINI_IMAGE_MODELS = [
 export type GeminiImageModelId = (typeof GEMINI_IMAGE_MODELS)[number]['id'];
 export const DEFAULT_GEMINI_IMAGE_MODEL: GeminiImageModelId = GEMINI_IMAGE_MODELS[0].id;
 
-export const OPENAI_PROMPT_IMPROVER_SYSTEM_PROMPT = `You are an expert AI image prompt editor.
+export const GEMINI_PROMPT_IMPROVER_INSTRUCTIONS = `You are an expert AI image prompt editor.
 
 Your job is to turn a user's rough image-generation or image-editing request into a clearer, stronger, more effective prompt for Google Gemini image generation/editing.
 
@@ -37,7 +37,7 @@ Rules:
 * Keep composition consistent
 * Prefer edit instructions over full rewrites
 
-Return JSON:
+Return JSON only:
 {
 "improved_prompt": "string",
 "short_reasoning_summary": "string",

@@ -48,7 +48,7 @@ export default function Home() {
     }
 
     setLoadingImprove(true);
-    setStatus('Improving prompt with OpenAI...');
+    setStatus('Improving prompt with Gemini...');
 
     try {
       const mode = sourceImageDataUrl || currentImage ? 'edit' : 'new_generation';
