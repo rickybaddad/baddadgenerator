@@ -1,4 +1,4 @@
-import { GoogleGenAI, Part } from '@google/genai';
+import { Content, GoogleGenAI, Part } from '@google/genai';
 import { GeminiMetadata, ResolutionOption } from '@/types';
 
 let geminiClient: GoogleGenAI | null = null;
@@ -22,7 +22,7 @@ interface GenerateGeminiImageArgs {
   prompt: string;
   resolution: ResolutionOption;
   sourceImage?: { mimeType: string; data: string };
-  previousConversationContents?: unknown[];
+  previousConversationContents?: Content[];
 }
 
 export async function generateGeminiImage({
@@ -44,12 +44,12 @@ export async function generateGeminiImage({
     } as Part);
   }
 
-  const contents: unknown[] = [
+  const contents: Content[] = [
     ...(Array.isArray(previousConversationContents) ? previousConversationContents : []),
     {
       role: 'user',
       parts: currentMessageParts
-    }
+    } as Content
   ];
 
   const response = await client.models.generateContent({
@@ -69,7 +69,7 @@ export async function generateGeminiImage({
   }
 
   const thoughtSignatureParts = parts
-    .map((part) => part.thoughtSignature || part.inlineData?.thoughtSignature)
+    .map((part) => part.thoughtSignature)
     .filter((item): item is string => Boolean(item));
 
   const metadata: GeminiMetadata = {
@@ -80,8 +80,7 @@ export async function generateGeminiImage({
       inlineData: part.inlineData
         ? {
             mimeType: part.inlineData.mimeType ?? 'image/png',
-            data: part.inlineData.data ?? '',
-            thoughtSignature: part.inlineData.thoughtSignature
+            data: part.inlineData.data ?? ''
           }
         : undefined,
       thoughtSignature: part.thoughtSignature
@@ -91,7 +90,7 @@ export async function generateGeminiImage({
       {
         role: 'model',
         parts
-      }
+      } as Content
     ]
   };
 
