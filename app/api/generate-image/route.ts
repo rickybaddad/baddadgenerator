@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Content } from '@google/genai';
+import { GEMINI_IMAGE_MODELS } from '@/config/constants';
 import { generateGeminiImage } from '@/services/gemini-service';
-import { ResolutionOption } from '@/types';
+import { GeminiImageModelId, ResolutionOption } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const prompt = String(body.prompt || '').trim();
     const resolution = (body.resolution || 'default') as ResolutionOption;
+    const model = String(body.model || '').trim();
+    const validModel = GEMINI_IMAGE_MODELS.some((item) => item.id === model)
+      ? (model as GeminiImageModelId)
+      : undefined;
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 });
@@ -23,6 +28,7 @@ export async function POST(req: NextRequest) {
     const result = await generateGeminiImage({
       prompt,
       resolution,
+      model: validModel,
       sourceImage,
       previousConversationContents: Array.isArray(body.previousConversationContents)
         ? (body.previousConversationContents as Content[])

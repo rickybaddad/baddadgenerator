@@ -1,6 +1,7 @@
 'use client';
 
-import { ResolutionOption } from '@/types';
+import { GEMINI_IMAGE_MODELS } from '@/config/constants';
+import { GeminiImageModelId, ResolutionOption } from '@/types';
 
 interface ControlPanelProps {
   rawPrompt: string;
@@ -8,6 +9,7 @@ interface ControlPanelProps {
   promptMode: 'raw' | 'improved';
   isStale: boolean;
   resolution: ResolutionOption;
+  model: GeminiImageModelId;
   hasSourceImage: boolean;
   loadingImprove: boolean;
   loadingGenerate: boolean;
@@ -16,6 +18,7 @@ interface ControlPanelProps {
   onImprovedPromptChange: (value: string) => void;
   onPromptModeChange: (value: 'raw' | 'improved') => void;
   onResolutionChange: (value: ResolutionOption) => void;
+  onModelChange: (value: GeminiImageModelId) => void;
   onImprovePrompt: () => void;
   onGenerate: () => void;
   onReset: () => void;
@@ -29,6 +32,7 @@ export function ControlPanel(props: ControlPanelProps) {
     promptMode,
     isStale,
     resolution,
+    model,
     hasSourceImage,
     loadingImprove,
     loadingGenerate,
@@ -37,6 +41,7 @@ export function ControlPanel(props: ControlPanelProps) {
     onImprovedPromptChange,
     onPromptModeChange,
     onResolutionChange,
+    onModelChange,
     onImprovePrompt,
     onGenerate,
     onReset,
@@ -121,6 +126,22 @@ export function ControlPanel(props: ControlPanelProps) {
             Improved Prompt
           </button>
         </div>
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">Gemini Image Model</span>
+          <select
+            value={model}
+            onChange={(e) => onModelChange(e.target.value as GeminiImageModelId)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm"
+            disabled={isBusy}
+          >
+            {GEMINI_IMAGE_MODELS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} — {item.description}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">Resolution</span>

@@ -1,4 +1,5 @@
 import type { Content } from '@google/genai';
+import type { GeminiImageModelId } from '@/config/constants';
 
 export type PromptMode = 'raw' | 'improved';
 export type ResolutionOption = 'default' | '2K' | '4K';
@@ -25,6 +26,8 @@ export interface GeminiMetadata {
   conversationContents?: Content[];
   model: string;
 }
+
+export type { GeminiImageModelId };
 
 export interface IterationStep {
   id: string;

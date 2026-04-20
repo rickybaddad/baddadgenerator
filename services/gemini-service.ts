@@ -1,5 +1,7 @@
 import { Content, GoogleGenAI, Part } from '@google/genai';
+import { DEFAULT_GEMINI_IMAGE_MODEL } from '@/config/constants';
 import { GeminiMetadata, ResolutionOption } from '@/types';
+import type { GeminiImageModelId } from '@/types';
 
 let geminiClient: GoogleGenAI | null = null;
 
@@ -21,6 +23,7 @@ function buildImageConfig(resolution: ResolutionOption) {
 interface GenerateGeminiImageArgs {
   prompt: string;
   resolution: ResolutionOption;
+  model?: GeminiImageModelId;
   sourceImage?: { mimeType: string; data: string };
   previousConversationContents?: Content[];
 }
@@ -28,11 +31,12 @@ interface GenerateGeminiImageArgs {
 export async function generateGeminiImage({
   prompt,
   resolution,
+  model,
   sourceImage,
   previousConversationContents
 }: GenerateGeminiImageArgs): Promise<{ imageBase64: string; metadata: GeminiMetadata; model: string }> {
   const client = getGeminiClient();
-  const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+  const selectedModel = model || process.env.GEMINI_IMAGE_MODEL || DEFAULT_GEMINI_IMAGE_MODEL;
 
   const currentMessageParts: Part[] = [{ text: prompt } as Part];
   if (sourceImage) {
@@ -53,7 +57,7 @@ export async function generateGeminiImage({
   ];
 
   const response = await client.models.generateContent({
-    model,
+    model: selectedModel,
     contents,
     config: {
       responseModalities: ['TEXT', 'IMAGE'],
@@ -73,7 +77,7 @@ export async function generateGeminiImage({
     .filter((item): item is string => Boolean(item));
 
   const metadata: GeminiMetadata = {
-    model,
+    model: selectedModel,
     thoughtSignatureParts,
     responseParts: parts.map((part) => ({
       text: part.text,
@@ -97,6 +101,6 @@ export async function generateGeminiImage({
   return {
     imageBase64: imagePart.inlineData.data,
     metadata,
-    model
+    model: selectedModel
   };
 }
