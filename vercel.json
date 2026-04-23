@@ -1,4 +1,17 @@
 {
-  "framework": "nextjs",
-  "outputDirectory": ".next"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/jobs/import-fixtures",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/jobs/import-odds",
+      "schedule": "*/30 * * * 4-7"
+    },
+    {
+      "path": "/api/jobs/generate-predictions",
+      "schedule": "5 */2 * * 4-7"
+    }
+  ]
 }

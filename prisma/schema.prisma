@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MatchStatus {
+  SCHEDULED
+  COMPLETED
+  POSTPONED
+  CANCELED
+}
+
+enum ImportType {
+  BOOTSTRAP
+  SEED_TEAMS
+  IMPORT_HISTORY
+  IMPORT_FIXTURES
+  IMPORT_ODDS
+  CALCULATE_RATINGS
+  GENERATE_PREDICTIONS
+}
+
+enum ImportStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model Team {
+  id            String               @id @default(cuid())
+  name          String               @unique
+  shortName     String
+  slug          String               @unique
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  aliases       TeamAlias[]
+  homeMatches   Match[]              @relation("HomeTeam")
+  awayMatches   Match[]              @relation("AwayTeam")
+  homeRatings   TeamRatingSnapshot[] @relation("HomeRatings")
+  awayRatings   TeamRatingSnapshot[] @relation("AwayRatings")
+
+  @@index([slug])
+}
+
+model TeamAlias {
+  id        String   @id @default(cuid())
+  alias     String
+  normalizedAlias String
+  teamId     String
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, normalizedAlias])
+  @@unique([normalizedAlias])
+  @@index([teamId])
+}
+
+model Match {
+  id             String               @id @default(cuid())
+  source         String
+  externalId     String
+  season         Int
+  round          String?
+  kickoffAt      DateTime
+  venue          String?
+  status         MatchStatus          @default(SCHEDULED)
+  homeTeamId     String
+  awayTeamId     String
+  homeScore      Int?
+  awayScore      Int?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  homeTeam       Team                 @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam       Team                 @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  oddsSnapshots  OddsSnapshot[]
+  predictions    Prediction[]
+  ratingSnapshots TeamRatingSnapshot[]
+
+  @@unique([source, externalId])
+  @@index([kickoffAt])
+  @@index([season, kickoffAt])
+  @@index([status, kickoffAt])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+}
+
+model TeamRatingSnapshot {
+  id            String   @id @default(cuid())
+  matchId        String
+  season         Int
+  homeTeamId     String
+  awayTeamId     String
+  homePreElo     Float
+  awayPreElo     Float
+  homePostElo    Float
+  awayPostElo    Float
+  calculatedAt   DateTime @default(now())
+  match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  homeTeam       Team     @relation("HomeRatings", fields: [homeTeamId], references: [id])
+  awayTeam       Team     @relation("AwayRatings", fields: [awayTeamId], references: [id])
+
+  @@unique([matchId])
+  @@index([season, calculatedAt])
+  @@index([homeTeamId, season])
+  @@index([awayTeamId, season])
+}
+
+model OddsSnapshot {
+  id                    String   @id @default(cuid())
+  matchId               String
+  bookmakerKey          String
+  bookmakerName         String
+  market                String
+  homePriceDecimal      Float
+  awayPriceDecimal      Float
+  homeImpliedProb       Float
+  awayImpliedProb       Float
+  homeNormalizedProb    Float
+  awayNormalizedProb    Float
+  overround             Float
+  fetchedAt             DateTime @default(now())
+  match                 Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, fetchedAt])
+  @@index([bookmakerKey])
+  @@unique([matchId, bookmakerKey, fetchedAt])
+}
+
+model Prediction {
+  id                    String   @id @default(cuid())
+  matchId               String
+  sourceOddsSnapshotId  String?
+  homeElo               Float
+  awayElo               Float
+  homeWinProbability    Float
+  awayWinProbability    Float
+  marketHomeProbability Float?
+  marketAwayProbability Float?
+  marketHomeOddsDecimal Float?
+  marketAwayOddsDecimal Float?
+  edgeHome              Float?
+  edgeAway              Float?
+  confidenceLabel       String
+  generatedAt           DateTime @default(now())
+  match                 Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, generatedAt])
+  @@index([generatedAt])
+}
+
+model ImportRun {
+  id          String       @id @default(cuid())
+  type        ImportType
+  status      ImportStatus
+  startedAt   DateTime     @default(now())
+  completedAt DateTime?
+  message     String?
+  metadata    Json?
+
+  @@index([type, startedAt])
+  @@index([status, startedAt])
+}

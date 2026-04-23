@@ -1,176 +1,91 @@
-# Iterative Gemini Creative Studio
+# NRL Model
 
-A premium, dark-mode, Vercel-deployable creative web app for iterative AI image generation and editing.
+Production-ready Next.js + Prisma application for NRL model-vs-market analysis, designed for GitHub → Vercel deployment with Neon Postgres.
 
-- **Gemini** handles both optional prompt improvement and image generation/editing.
+## Stack
 
-## Features
-
-- Start from **text** or **upload an image**
-- Raw prompt workflow with optional Gemini prompt improvement
-- Prompt mode switch:
-  - `Using: Raw Prompt`
-  - `Using: Improved Prompt`
-- Stale warning when raw prompt changes after improvement
-- Resolution selector:
-  - Default (omits `imageSize`)
-  - `2K` (`imageSize: "2K"`)
-  - `4K` (`imageSize: "4K"`)
-- Iterative Gemini editing with preserved conversation metadata
-- Visual timeline + branching + active selection + download
-
-## Tech Stack
-
-- Next.js (App Router)
-- TypeScript
+- Next.js (App Router, TypeScript)
 - Tailwind CSS
-- Server-only API routes for AI calls
-- Vercel-ready
+- Prisma + PostgreSQL (Neon)
+- Zod config validation
+- date-fns, axios, cheerio
+- Vercel serverless API routes + optional cron
 
-## Project Structure
+## Environment Variables
 
-```txt
-app/
-  api/
-    improve-prompt/route.ts
-    generate-image/route.ts
-  globals.css
-  layout.tsx
-  page.tsx
-components/
-  active-preview.tsx
-  control-panel.tsx
-  iteration-timeline.tsx
-services/
-  client-utils.ts
-  gemini-prompt-service.ts
-  gemini-service.ts
-types/
-  index.ts
-config/
-  constants.ts
-.env.example
-```
+Set these in Vercel Project Settings:
 
-## 1) Install
+- `DATABASE_URL`
+- `ODDS_API_KEY`
+- `ODDS_API_REGION` (default `au`)
+- `ODDS_API_MARKETS` (default `h2h`)
+- `STARTING_ELO` (default `1500`)
+- `K_FACTOR` (default `30`)
+- `HOME_ADVANTAGE_ELO` (default `50`)
+- `VALUE_EDGE_THRESHOLD` (default `0.04`)
+- `CONFIDENCE_MEDIUM_THRESHOLD` (default `0.03`)
+- `CONFIDENCE_HIGH_THRESHOLD` (default `0.06`)
+
+See `.env.example`.
+
+## Deploy on Vercel + Neon
+
+1. Create Neon database and copy the pooled connection string into `DATABASE_URL`.
+2. Push repository to GitHub.
+3. Import project into Vercel.
+4. Configure all env vars above.
+5. Run migrations once:
+   - `npx prisma migrate deploy`
+   - `npx prisma generate`
+6. Trigger bootstrap via API endpoint.
+
+## Data Flow
+
+`POST /api/jobs/bootstrap` runs full pipeline:
+
+1. seed teams + aliases
+2. import history from Rugby League Project
+3. calculate Elo ratings
+4. import fixtures from NRL.com draw
+5. import odds from The Odds API
+6. generate predictions
+
+Every job writes an `ImportRun` row and is built to be idempotent (upsert or append-by-timestamp logic).
+
+## API Endpoints
+
+### Read APIs
+
+- `GET /api/matches`
+- `GET /api/predictions`
+- `GET /api/predictions/upcoming`
+
+### Job APIs
+
+- `POST /api/jobs/bootstrap`
+- `POST /api/jobs/import-history`
+- `POST /api/jobs/import-fixtures`
+- `POST /api/jobs/import-odds`
+- `POST /api/jobs/calculate-ratings`
+- `POST /api/jobs/generate-predictions`
+
+## Scraper Maintenance Guide
+
+If source markup changes:
+
+- `lib/scrapers/nrl.ts`: update selectors for team names, kickoff time, and match ID.
+- `lib/scrapers/rugby-league-project.ts`: update table column mapping and score regex.
+- Verify by running relevant job endpoint and inspecting `ImportRun.metadata.unmatched`.
+
+## Local Verification (optional)
 
 ```bash
 npm install
+npx prisma generate
+npm run test
+npm run build
 ```
 
-## 2) Configure API keys
+## Vercel Cron (optional)
 
-Copy and edit environment variables:
-
-```bash
-cp .env.example .env.local
-```
-
-Add values:
-
-- `GEMINI_API_KEY`
-
-Optional model overrides:
-
-- `GEMINI_PROMPT_IMPROVER_MODEL` (default: `gemini-2.5-flash`)
-- `GEMINI_IMAGE_MODEL` (default: `gemini-2.5-flash-image`)
-
-## 3) Run locally
-
-```bash
-npm run dev
-```
-
-Open: [http://localhost:3000](http://localhost:3000)
-
-## 4) Deploy to Vercel
-
-1. Push repo to GitHub/GitLab/Bitbucket.
-2. Import project into Vercel.
-3. Set env vars in Vercel Project Settings:
-   - `GEMINI_API_KEY`
-   - (optional model env vars)
-4. Deploy.
-
-## Prompt Improver Flow (Gemini)
-
-- Triggered **only** when user clicks **Improve Prompt**.
-- Endpoint: `POST /api/improve-prompt`
-- Uses the exact rewrite instructions in `config/constants.ts`.
-- Returns strict JSON schema:
-
-```json
-{
-  "improved_prompt": "string",
-  "short_reasoning_summary": "string",
-  "edit_type": "edit | new_generation",
-  "preserve_existing_image": true
-}
-```
-
-- Improved prompt is editable in UI.
-- If raw prompt changes after improvement, app marks improved prompt stale and shows warning.
-
-## Gemini Flow (Generation + Iterative Editing)
-
-- Endpoint: `POST /api/generate-image`
-- Supports:
-  - prompt-only generation
-  - prompt + source image editing via inline base64 image
-- Resolution mapping:
-  - Default => omit `imageConfig.imageSize`
-  - `2K` => `imageConfig.imageSize = "2K"`
-  - `4K` => `imageConfig.imageSize = "4K"`
-
-### Metadata preservation
-
-For iterative edits, each generated step stores Gemini metadata including:
-- returned parts
-- thought signatures when present
-- accumulated conversation contents
-
-Each follow-up edit sends forward previous `conversationContents` so the workflow remains conversational, not stateless.
-
-> Note: Gemini SDK behavior can evolve. If SDK signatures differ, adjust fields in `services/gemini-service.ts` (comments and code are structured to make this straightforward).
-
-## Iteration Chain
-
-Each iteration stores:
-
-- `id`
-- `parentId`
-- `branchId`
-- `stepNumber`
-- `createdAt`
-- `mode` (`edit` / `new_generation`)
-- `rawPrompt`
-- `improvedPrompt`
-- `reasoningSummary`
-- `resolution`
-- `sourceImage`
-- `resultImage`
-- `geminiMetadata`
-- `active`
-
-UI supports:
-
-- View step
-- Download step
-- Use as active
-- Branch from step
-- Highlight active step
-
-## Validation
-
-- Prompt required
-- Image optional (used for edits)
-- Supported mime types: png/jpg/jpeg/webp
-- File size limit: 12 MB
-- Graceful API/client error handling
-
-## Production Notes
-
-- AI keys are server-side only.
-- No client-side key exposure.
-- API routes isolate all model calls.
-- App is ready for Vercel serverless deployment.
+`vercel.json` includes daily triggers for fixture, odds, and prediction refresh.
